@@ -1,0 +1,8 @@
+(executable
+ (name main)
+ (public_name parser)
+ (libraries
+  parser.core
+  parser.lexer
+  parser.defs
+  )) 

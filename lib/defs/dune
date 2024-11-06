@@ -1,0 +1,4 @@
+(library
+ (name defs)
+ (public_name parser.defs)
+ (modules globals while regex))

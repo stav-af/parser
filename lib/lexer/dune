@@ -1,0 +1,4 @@
+(library
+ (name lexer)
+ (public_name parser.lexer)
+ (libraries defs))
