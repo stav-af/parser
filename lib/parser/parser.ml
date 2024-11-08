@@ -42,7 +42,7 @@ let create_parser (map : (string * 'a) list) : 'a parser =
         | Some value -> (Printf.printf "matched %s\n" tok_value; [ (value, rest) ])
         | None -> []
 
-let bop: bOp parser = 
+let bop: bop parser = 
   create_parser [
     ("==", BEQ);
     ("!=", BNE);
@@ -50,7 +50,7 @@ let bop: bOp parser =
     ("||", DISJ)
   ]
 
-let nt: exp parser =
+let nt: aexp parser =
   fun toks ->
     match toks with
     | ("n", num) :: rest -> ([ (VAL (int_of_string num), rest) ])
@@ -73,7 +73,7 @@ let _while = create_parser [("while", SKIP)]
 let _if = create_parser [("if", SKIP)]
 let _then = create_parser [("then", SKIP)]
 let _else = create_parser [("else", SKIP)]
-let assign = create_parser [(":=", SKIP)] (* explicit ignore needed *)
+let assign = create_parser [(":=", SKIP)] (* aexplicit ignore needed *)
 let lp = create_parser [("(", NONE)]
 let rp = create_parser [(")", NONE)]
 let lb = create_parser [("{", NONE)]
@@ -87,21 +87,21 @@ let bcomp = create_parser [
   (">", GT); ("<", LT)]
 
 
-let rec bex: bExp parser = fun inp -> (print_endline "entered bexp parser");
+let rec bex: bexp parser = fun inp -> (print_endline "entered bexp parser");
   ((bf |~| 
   ((bf ++ bop ++ bex) >>= fun ((a,b),c) -> BEXP(b, a, c))) |~|
   ((ex ++ bcomp ++ ex) >>= fun ((a,b),c) -> COMP(b,a,c))) inp
-and ex: exp parser = fun inp -> (print_endline "entered exp parser");
+and ex: aexp parser = fun inp -> (print_endline "entered aexp parser");
   (te |~|
   (((te ++ add ++ ex) >>= fun ((a,b),c) -> EXPR(b, a, c)))) inp
-and te: exp parser = fun inp ->
+and te: aexp parser = fun inp ->
   (fi |~|
   ((fi ++ mult ++ te) >>= fun ((a,b),c) -> EXPR(b, a, c))) inp
-and fi: exp parser = fun inp ->
+and fi: aexp parser = fun inp ->
   (nt |~|
   (id >>= fun s -> VAR s) |~|
   ((lp ++ ex ++ rp) >>= fun ((_,b),_) -> b )) inp
-and bf: bExp parser = fun inp ->
+and bf: bexp parser = fun inp ->
   ((b) |~|
   ((ex ++ bcomp ++ ex) >>= fun ((a, b), c) -> COMP(b, a, c)) |~|
   ((lp ++ bex ++ rp) >>= fun ((_, b), _) -> b)) inp

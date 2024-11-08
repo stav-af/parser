@@ -3,7 +3,7 @@ open Ast
 module StringMap = Map.Make(String)
 
 
-let rec eval_expr (mmap: int StringMap.t) (e: exp) =
+let rec eval_expr (mmap: int StringMap.t) (e: aexp) =
   match e with
   | EXPR(op, e1, e2) -> (
     let v1 = eval_expr mmap e1 in
@@ -17,7 +17,7 @@ let rec eval_expr (mmap: int StringMap.t) (e: exp) =
   | VAR(ident) -> StringMap.find ident mmap
   | VAL(n) -> n
 
-let rec eval_bexp (mmap: int StringMap.t) (b: bExp) =
+let rec eval_bexp (mmap: int StringMap.t) (b: bexp) =
   match b with
   | TRUE -> true
   | FALSE -> false

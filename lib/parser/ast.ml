@@ -1,36 +1,36 @@
 type ident = string
 
-type bComp = 
+type bcomp = 
  | GT | LT | GE | LE | EQ | NE 
 
-type bOp = 
+type bop = 
  | CONJ | DISJ | BEQ | BNE
 
-type aOp = 
+type aop = 
  | SUB
  | ADD
  | MULT
  | DIV
  | MOD
 
-type exp = 
- | EXPR of aOp * exp * exp
+type aexp = 
+ | EXPR of aop * aexp * aexp
  | VAR of ident
  | VAL of int
 
-type bExp =
+type bexp =
  | TRUE | FALSE 
- | COMP of bComp * exp * exp 
- | BEXP of bOp * bExp * bExp
+ | COMP of bcomp * aexp * aexp 
+ | BEXP of bop * bexp * bexp
 
 type stmt = 
  | SKIP
  | SEQ_STMT of stmt * stmt
- | ASSIGN of ident * exp
- | IF of bExp * stmt * stmt
- | WHILE of bExp * stmt
+ | ASSIGN of ident * aexp
+ | IF of bexp * stmt * stmt
+ | WHILE of bexp * stmt
  | READ of ident
- | WRITE of exp
+ | WRITE of aexp
 
 
 (* fix this, should just be a statement *)

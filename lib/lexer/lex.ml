@@ -78,7 +78,6 @@ let f_error (_: value) : value =
   failwith "Error in rectification function"
 
 let rec simp(r: regex): regex * (value -> value) =
-  incr simp2_calls;
   match r with
   | Seq(r1, r2) -> (match (simp r1) with
     | (Zero, _) -> (Zero, f_error)

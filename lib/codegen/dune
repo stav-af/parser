@@ -1,0 +1,11 @@
+; (library
+;  (name codegen)
+;  (public_name parser.codegen)
+;  (libraries parser.core)
+;  (modules codegen))
+
+(executable
+ (name codegen_main)
+ (public_name parser.codegen_main)
+ (libraries parser.core))
+
