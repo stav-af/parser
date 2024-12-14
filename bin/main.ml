@@ -51,7 +51,8 @@ and display_stmt = function
   | IF (cond, s1, s2) -> Printf.sprintf "if %s then %s else %s" (display_bExp cond) (display_stmt s1) (display_stmt s2)
   | WHILE (cond, s1) -> Printf.sprintf "while %s do %s" (display_bExp cond) (display_stmt s1)
   | READ id -> Printf.sprintf "read(%s)" id
-  | WRITE e1 -> Printf.sprintf "write(%s)" e1
+  | WRITE_VAR e1 -> Printf.sprintf "write(%s)" e1
+  | WRITE_STR e1 -> Printf.sprintf "write(%s)" e1
 
 let print_string_map (map: int StringMap.t) =
   StringMap.iter (fun key value ->

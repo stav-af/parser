@@ -2,5 +2,5 @@
  (name codegen)
  (public_name parser.codegen)
  (libraries parser.core re)
- (modules codegen))
+ (modules codegen prelude))
 

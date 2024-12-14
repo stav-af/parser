@@ -48,8 +48,8 @@ and eval_stmt (mmap: int StringMap.t) (statement: stmt) =
  | IF(bxp, s1, s2) -> if eval_bexp mmap bxp then eval_stmt mmap s1 else eval_stmt mmap s2
  | WHILE(bxp, s1) -> if eval_bexp mmap bxp then (eval_stmt mmap (SEQ_STMT(s1, WHILE(bxp, s1)))) else mmap
  | READ(ident) -> let inp = read_line() in (eval_stmt mmap (ASSIGN(ident, VAL(int_of_string inp))))
- | WRITE(ident) -> (Printf.printf "%d\n" (StringMap.find ident mmap)); mmap
-
+ | WRITE_VAR(ident) -> (Printf.printf "%d\n" (StringMap.find ident mmap)); mmap
+ | WRITE_STR(str) -> (Printf.printf "%s\n" str); mmap
 
 let eval(st: stmt) =
   let mmap = StringMap.empty in

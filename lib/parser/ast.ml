@@ -33,4 +33,5 @@ type stmt =
  | IF of bexp * stmt * stmt
  | WHILE of bexp * stmt
  | READ of ident
- | WRITE of ident
+ | WRITE_STR of string
+ | WRITE_VAR of string

@@ -1,36 +1,9 @@
 open Core.Ast
 
+open Prelude
 module Env = Map.Make(String)
 
-let out_dir = "while_programs"
-
-let program_start = {|
-.class public XXX.XXX
-.super java/lang/Object
-
-.method public static write(I)V 
-    .limit locals 1 
-    .limit stack 2 
-    getstatic java/lang/System/out Ljava/io/PrintStream; 
-    iload 0
-    invokevirtual java/io/PrintStream/println(I)V   
-    return 
-.end method
-
-.method public static main([Ljava/lang/String;)V
-   .limit locals 200
-   .limit stack 200
-
-; COMPILED CODE STARTS   
-
-|}
-
-let library_start = {|
-
-|}
-
 let label_counter = ref 0
-
 let new_label (s: string) =
   incr label_counter;
   Printf.sprintf "%s_%n" s !label_counter
@@ -40,7 +13,6 @@ let fmtl l =
 
 let fmt (operator) (operand) =
   Printf.sprintf "\t%s %s\n" operator operand
-
 
 let map_size map =
   Env.fold (fun _ _ acc -> acc + 1) map 0
@@ -104,10 +76,13 @@ let rec c_stmt (st: stmt) (env: int Env.t): string * int Env.t =
       in
     (ce1) ^
     (fmt "istore" (string_of_int idx)), env1
-  | WRITE(id) -> 
+  | WRITE_VAR(id) -> 
     let idx = Env.find id env |> string_of_int in
     (fmt "iload" idx) ^
     "\tinvokestatic XXX/XXX/write(I)V\n", env
+  | WRITE_STR(str) -> 
+    (fmt "ldc" str) ^
+    "\tinvokestatic XXX/XXX/writes(Ljava/lang/String;)V\n", env
   | _ -> failwith "Not implemented"
 
 
@@ -186,7 +161,7 @@ let compile sstmt class_name =
   let (instr, _) = (c_stmt sstmt env) in
   let prog =
     Printf.sprintf "%s\n%s\n\treturn\n.end method" 
-      program_start
+      prelude
       instr in
   
   let pattern = Re.Perl.compile_pat "XXX" in

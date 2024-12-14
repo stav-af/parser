@@ -64,6 +64,13 @@ let _id: ident parser =
     | ("i", name) :: rest -> [ (name, rest) ]
     | _ -> []
 
+let _str = 
+  fun toks ->
+    match toks with 
+    | ("str", str) :: rest -> [ (str, rest) ]
+    | _ -> []
+
+
 
 let _sc      = !! ";" NONE
 let _do      = !! "do" NONE
@@ -135,13 +142,18 @@ and _comp_stmt: stmt parser = fun inp ->
   (((_stmt ++ _sc ++ _comp_stmt) >>= fun ((s1, _), s2) -> SEQ_STMT(s1, s2)) |~| 
    (_stmt)) inp
 and _stmt: stmt parser = fun inp ->
-  (_skip |~|
+  (_skip |~| _write_stmt |~|
   ((_id ++ _assign ++_aexp) >>= fun ((a,_),c) -> ASSIGN(a, c)) |~|
   ((_if ++_bexp ++ _then ++ _block ++ _else ++ _block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
   ((_while ++_bexp ++ _do ++ _block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
-  ((_read ++ _id) >>= fun (_,b) -> READ(b)) |~|
-  ((_write ++ _lp ++ _id ++ _rp) >>= fun (((_, _), b), _) -> WRITE(b))) inp
-
+  ((_read ++ _id) >>= fun (_,b) -> READ(b))
+  ) inp
+and _write_stmt: stmt parser = fun inp -> (
+    ((_write ++ _id) >>= fun (_, s) -> WRITE_VAR(s)) |~|
+    ((_write ++ _lp ++ _id ++ _rp) >>= fun (((_, _), s), _) -> WRITE_VAR(s)) |~|
+    ((_write ++ _str) >>= fun (_, s) -> WRITE_STR(s)) |~|
+    ((_write ++ _lp ++ _str ++ _rp) >>= fun (((_, _), s), _) -> WRITE_STR(s))
+    ) inp
 
 
 
