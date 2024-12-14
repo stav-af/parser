@@ -35,7 +35,7 @@ let create_parser (map : (string * 'a) list) : 'a parser =
     | [] -> []
     | (_, tok_value) :: rest ->
         match List.assoc_opt tok_value map with
-        | Some value -> (Printf.printf "matched %s\n" tok_value; [ (value, rest) ])
+        | Some value -> [ (value, rest) ]
         | None -> []
 
 

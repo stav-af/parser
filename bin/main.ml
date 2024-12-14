@@ -2,7 +2,7 @@ open Core.Ast
 open Core.Parser
 open Core.Eval
 
-open Lexer.Formatter
+(* open Lexer.Formatter *)
 
 open Codegen
 
@@ -72,8 +72,22 @@ let () =
   let s = really_input_string ic n in
   let prog = lexing_simp s while_toks in
   let asts = _comp_stmt prog in
-  let ast = (fst (List.find  (fun (e, rest) -> (print_endline(display_stmt(e)); print_endline(display_toks(rest));); rest = []) asts)) in
-  print_endline(display_stmt ast);
-  print_string_map (eval(ast));
-  compile ast "collatz";
+  let ast = (fst (List.find  (fun (_, rest) -> rest = []) asts)) in
+
+  let class_name = "test" in
+  let test_dir = "out" in
+
+  let code = compile ast class_name in
+
+  let j_file = Printf.sprintf "%s/%s.j" test_dir class_name in
+  let oc = open_out j_file in
+  output_string oc code;
+  close_out oc;
+
+  let cmd_jasmin = Printf.sprintf "java -jar jasmin.jar -d %s %s" test_dir j_file in
+  ignore (Sys.command cmd_jasmin);
+
+  let cmd_java = Printf.sprintf "java -cp %s %s/%s" test_dir class_name class_name in
+  ignore (Sys.command cmd_java);
+
   ()

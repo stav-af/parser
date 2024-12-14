@@ -189,8 +189,5 @@ let compile sstmt class_name =
       program_start
       instr in
   
-  let compiled =
-    let pattern = Re.Perl.compile_pat "XXX" in
-    Re.replace_string ~all:true ~by:class_name pattern prog in
-  
-  f_write compiled (Printf.sprintf "%s/%s.j" out_dir class_name)
+  let pattern = Re.Perl.compile_pat "XXX" in
+  Re.replace_string ~all:true ~by:class_name pattern prog
