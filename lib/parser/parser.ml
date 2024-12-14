@@ -29,10 +29,6 @@ let alt_parser (p: 'a parser) (q: 'a parser) : 'a parser =
     let res_q = q inp in
     res_p @ res_q 
 
-let (++) = seq_parser
-let (|~|) = alt_parser
-let (>>=) = map_parser
-
 let create_parser (map : (string * 'a) list) : 'a parser = 
   fun toks ->
     match toks with
@@ -42,7 +38,13 @@ let create_parser (map : (string * 'a) list) : 'a parser =
         | Some value -> (Printf.printf "matched %s\n" tok_value; [ (value, rest) ])
         | None -> []
 
-let bop: bop parser = 
+
+let (++) = seq_parser
+let (|~|) = alt_parser
+let (>>=) = map_parser
+let (!!) = fun tok value -> create_parser [(tok, value)]
+
+let _bop: bop parser = 
   create_parser [
     ("==", BEQ);
     ("!=", BNE);
@@ -50,74 +52,96 @@ let bop: bop parser =
     ("||", DISJ)
   ]
 
-let nt: aexp parser =
+let _nt: aexp parser =
   fun toks ->
     match toks with
     | ("n", num) :: rest -> ([ (VAL (int_of_string num), rest) ])
     | _ -> [] 
 
-let id: ident parser = 
+let _id: ident parser = 
   fun toks -> 
     match toks with 
     | ("i", name) :: rest -> [ (name, rest) ]
     | _ -> []
 
 
+let _sc      = !! ";" NONE
+let _do      = !! "do" NONE
+let _skip    = !! "skip" SKIP
+let _read    = !! "read" NONE
+let _write   = !! "write" NONE
+let _while   = !! "while" NONE
+let _if      = !! "if" NONE
+let _then    = !! "then" NONE
+let _else    = !! "else" NONE
+let _assign  = !! ":=" NONE
+let _lp      = !! "(" NONE
+let _rp      = !! ")" NONE
+let _lb      = !! "{" NONE
+let _rb      = !! "}" NONE
+let _comma   = !! "," NONE
+let _define  = !! "def" NONE
 
-let sc = create_parser [(";", SKIP)]
-let _do = create_parser [("do", SKIP)]
-let _skip = create_parser [("skip", SKIP)]
-let _read = create_parser [("read", SKIP)]
-let _write = create_parser [("write", SKIP)]
-let _while = create_parser [("while", SKIP)]
-let _if = create_parser [("if", SKIP)]
-let _then = create_parser [("then", SKIP)]
-let _else = create_parser [("else", SKIP)]
-let assign = create_parser [(":=", SKIP)] (* aexplicit ignore needed *)
-let lp = create_parser [("(", NONE)]
-let rp = create_parser [(")", NONE)]
-let lb = create_parser [("{", NONE)]
-let rb = create_parser [("}", NONE)]
-let b = create_parser [("true", TRUE); ("false", FALSE)]
-let add = create_parser [("+", ADD); ("-", SUB)]
-let mult = create_parser [("/", DIV); ("%", MOD); ("*", MULT)]
-let bcomp = create_parser [
-  ("<=", LE); (">=", GE); 
-  ("==", EQ); ("!=", NE);
-  (">", GT); ("<", LT)]
+let _bool = (!! "true" TRUE) |~| (!! "false" FALSE)
+
+let _add  = (!! "+" ADD) |~| (!! "-" SUB)
+let _mult = (!! "/" DIV) |~| (!! "%" MOD) |~| (!! "*" MULT)
+
+let _bcomp = 
+  (!! "<=" LE) |~| 
+  (!! ">=" GE) |~| 
+  (!! "==" EQ) |~| 
+  (!! "!=" NE) |~| 
+  (!! ">" GT) |~| 
+  (!! "<" LT)
+
+let _bop =
+  (!! "==" BEQ) |~|
+  (!! "!=" BNE) |~|
+  (!! "&&" CONJ) |~|
+  (!! "||" DISJ)
 
 
-let rec bex: bexp parser = fun inp -> (print_endline "entered bexp parser");
-  ((bf |~| 
-  ((bf ++ bop ++ bex) >>= fun ((a,b),c) -> BEXP(b, a, c))) |~|
-  ((ex ++ bcomp ++ ex) >>= fun ((a,b),c) -> COMP(b,a,c))) inp
-and ex: aexp parser = fun inp -> (print_endline "entered aexp parser");
-  (te |~|
-  (((te ++ add ++ ex) >>= fun ((a,b),c) -> EXPR(b, a, c)))) inp
-and te: aexp parser = fun inp ->
-  (fi |~|
-  ((fi ++ mult ++ te) >>= fun ((a,b),c) -> EXPR(b, a, c))) inp
-and fi: aexp parser = fun inp ->
-  (nt |~|
-  (id >>= fun s -> VAR s) |~|
-  ((lp ++ ex ++ rp) >>= fun ((_,b),_) -> b )) inp
-and bf: bexp parser = fun inp ->
-  ((b) |~|
-  ((ex ++ bcomp ++ ex) >>= fun ((a, b), c) -> COMP(b, a, c)) |~|
-  ((lp ++ bex ++ rp) >>= fun ((_, b), _) -> b)) inp
-and comp_stmt: stmt parser = fun inp ->
-  (((stmt ++ sc ++ comp_stmt) >>= fun ((s1, _), s2) -> SEQ_STMT(s1, s2)) |~| 
-   (stmt)) inp
-and stmt: stmt parser = fun inp ->
+
+let rec _bexp: bexp parser = fun inp -> (
+    (_bfinal) |~| 
+    ((_bfinal ++ _bop ++_bexp) >>= fun ((a,b),c) -> BEXP(b, a, c)) |~|
+    ((_aexp++_bcomp ++_aexp) >>= fun ((a,b),c) -> COMP(b,a,c))
+  ) inp
+and _bfinal: bexp parser = fun inp -> (
+    _bool |~|
+    ((_aexp ++ _bcomp ++ _aexp) >>= fun ((a, b), c) -> COMP(b, a, c)) |~|
+    ((_lp ++ _bexp ++ _rp) >>= fun ((_, b), _) -> b)
+  ) inp
+
+and _aexp: aexp parser = fun inp -> (
+    _aterm |~|
+    ((_aterm ++ _add ++ _aexp) >>= fun ((a,b),c) -> EXPR(b, a, c))
+  ) inp
+and _aterm: aexp parser = fun inp -> (
+    _afinal |~|
+    ((_afinal ++ _mult ++ _aterm) >>= fun ((a,b),c) -> EXPR(b, a, c))
+  ) inp
+and _afinal: aexp parser = fun inp -> (
+    _nt |~| 
+    (_id >>= fun i -> VAR i)|~|
+  ((_lp ++_aexp ++ _rp) >>= fun ((_,b),_) -> b )) inp
+
+and _block: stmt parser = fun inp -> (
+    _stmt |~|
+    ((_lb ++ _comp_stmt ++ _rb) >>= fun ((_, s), _) -> (s))
+  ) inp
+and _comp_stmt: stmt parser = fun inp ->
+  (((_stmt ++ _sc ++ _comp_stmt) >>= fun ((s1, _), s2) -> SEQ_STMT(s1, s2)) |~| 
+   (_stmt)) inp
+and _stmt: stmt parser = fun inp ->
   (_skip |~|
-  ((id ++ assign ++ ex) >>= fun ((a,_),c) -> ASSIGN(a, c)) |~|
-  ((_if ++ bex ++ _then ++ block ++ _else ++ block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
-  ((_while ++ bex ++ _do ++ block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
-  ((_read ++ id) >>= fun (_,b) -> READ(b)) |~|
-  ((_write ++ lp ++ id ++ rp) >>= fun (((_, _), b), _) -> WRITE(b))) inp
-and block: stmt parser = fun inp -> print_endline "blockparser";
-  (((lb ++ comp_stmt ++ rb) >>= fun ((_, s), _) -> (s)) |~| 
-  (stmt)) inp
+  ((_id ++ _assign ++_aexp) >>= fun ((a,_),c) -> ASSIGN(a, c)) |~|
+  ((_if ++_bexp ++ _then ++ _block ++ _else ++ _block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
+  ((_while ++_bexp ++ _do ++ _block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
+  ((_read ++ _id) >>= fun (_,b) -> READ(b)) |~|
+  ((_write ++ _lp ++ _id ++ _rp) >>= fun (((_, _), b), _) -> WRITE(b))) inp
+
 
 
 

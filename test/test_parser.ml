@@ -77,6 +77,6 @@ let test_expr =[
 
   
 let () =
-  match (ex test_expr) with
+  match (_aexp test_expr) with
   | (parsed_exp, _) :: _ -> Printf.printf "%s\n" (string_of_exp parsed_exp)
   | [] -> Printf.printf "No valid parse result\n"

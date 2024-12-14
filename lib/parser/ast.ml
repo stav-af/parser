@@ -1,5 +1,8 @@
 type ident = string
 
+type delim =
+  | NONE
+
 type bcomp = 
  | GT | LT | GE | LE | EQ | NE 
 
@@ -31,11 +34,3 @@ type stmt =
  | WHILE of bexp * stmt
  | READ of ident
  | WRITE of ident
-
-
-(* fix this, should just be a statement *)
-type sc = 
- | SC
-
-type null = 
- | NONE

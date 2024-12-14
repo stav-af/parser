@@ -71,7 +71,7 @@ let () =
   let n = in_channel_length ic in
   let s = really_input_string ic n in
   let prog = lexing_simp s while_toks in
-  let asts = comp_stmt prog in
+  let asts = _comp_stmt prog in
   let ast = (fst (List.find  (fun (e, rest) -> (print_endline(display_stmt(e)); print_endline(display_toks(rest));); rest = []) asts)) in
   print_endline(display_stmt ast);
   print_string_map (eval(ast));
