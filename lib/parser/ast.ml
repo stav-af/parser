@@ -30,7 +30,7 @@ type stmt =
  | IF of bexp * stmt * stmt
  | WHILE of bexp * stmt
  | READ of ident
- | WRITE of aexp
+ | WRITE of ident
 
 
 (* fix this, should just be a statement *)

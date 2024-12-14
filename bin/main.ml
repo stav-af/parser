@@ -1,7 +1,10 @@
 open Core.Ast
 open Core.Parser
 open Core.Eval
+
 open Lexer.Formatter
+
+open Codegen
 
 open Defs.While
 open Lexer.Lex
@@ -48,7 +51,7 @@ and display_stmt = function
   | IF (cond, s1, s2) -> Printf.sprintf "if %s then %s else %s" (display_bExp cond) (display_stmt s1) (display_stmt s2)
   | WHILE (cond, s1) -> Printf.sprintf "while %s do %s" (display_bExp cond) (display_stmt s1)
   | READ id -> Printf.sprintf "read(%s)" id
-  | WRITE e1 -> Printf.sprintf "write(%s)" (display_exp e1)
+  | WRITE e1 -> Printf.sprintf "write(%s)" e1
 
 let print_string_map (map: int StringMap.t) =
   StringMap.iter (fun key value ->
@@ -71,4 +74,6 @@ let () =
   let asts = comp_stmt prog in
   let ast = (fst (List.find  (fun (e, rest) -> (print_endline(display_stmt(e)); print_endline(display_toks(rest));); rest = []) asts)) in
   print_endline(display_stmt ast);
-  print_string_map (eval(ast))
+  print_string_map (eval(ast));
+  compile ast "collatz";
+  ()

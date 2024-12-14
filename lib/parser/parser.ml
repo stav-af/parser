@@ -114,7 +114,7 @@ and stmt: stmt parser = fun inp ->
   ((_if ++ bex ++ _then ++ block ++ _else ++ block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
   ((_while ++ bex ++ _do ++ block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
   ((_read ++ id) >>= fun (_,b) -> READ(b)) |~|
-  ((_write ++ ex) >>= fun (_,b) -> WRITE(b))) inp
+  ((_write ++ lp ++ id ++ rp) >>= fun (((_, _), b), _) -> WRITE(b))) inp
 and block: stmt parser = fun inp -> print_endline "blockparser";
   (((lb ++ comp_stmt ++ rb) >>= fun ((_, s), _) -> (s)) |~| 
   (stmt)) inp
