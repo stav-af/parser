@@ -53,6 +53,7 @@ and display_stmt = function
   | READ id -> Printf.sprintf "read(%s)" id
   | WRITE_VAR e1 -> Printf.sprintf "write(%s)" e1
   | WRITE_STR e1 -> Printf.sprintf "write(%s)" e1
+  | FOR (i, lb, ub, stmt) -> Printf.sprintf "for %s = %s upto %s do {%s}" i (display_exp lb) (display_exp ub) (display_stmt stmt)
 
 let print_string_map (map: int StringMap.t) =
   StringMap.iter (fun key value ->
@@ -68,27 +69,39 @@ let display_null = function
 let fst (a1, _) = a1
 
 let () =
-  let ic = open_in "./lib/while_programs/collatz_repeated.while" in
-  let n = in_channel_length ic in
-  let s = really_input_string ic n in
-  let prog = lexing_simp s while_toks in
-  let asts = _comp_stmt prog in
-  let ast = (fst (List.find  (fun (_, rest) -> rest = []) asts)) in
+  let dir = "./lib/while_programs" in
+  let files = Sys.readdir dir in
 
-  let class_name = "test" in
-  let test_dir = "out" in
+  Array.iter (fun file ->
+    if Filename.check_suffix file ".while" then begin
+      let filepath = Filename.concat dir file in
 
-  let code = compile ast class_name in
+      let ic = open_in filepath in
+      let n = in_channel_length ic in
+      let s = really_input_string ic n in
+      close_in ic;
 
-  let j_file = Printf.sprintf "%s/%s.j" test_dir class_name in
-  let oc = open_out j_file in
-  output_string oc code;
-  close_out oc;
+      let prog = lexing_simp s while_toks in
+      let asts = _comp_stmt prog in
+      let ast = 
+      match List.find_opt (fun (_, rest) -> rest = []) asts with
+        | Some (a, _) -> a
+        | None -> failwith "Error: No valid AST found with an empty rest" in
 
-  let cmd_jasmin = Printf.sprintf "java -jar jasmin.jar -d %s %s" test_dir j_file in
-  ignore (Sys.command cmd_jasmin);
+      let class_name = Filename.remove_extension file in
 
-  let cmd_java = Printf.sprintf "java -cp %s %s/%s" test_dir class_name class_name in
-  ignore (Sys.command cmd_java);
+      let test_dir = "out" in
+      let code = compile ast class_name in
 
-  ()
+      let j_file = Printf.sprintf "%s/%s.j" test_dir class_name in
+      let oc = open_out j_file in
+      output_string oc code;
+      close_out oc;
+
+      let cmd_jasmin = Printf.sprintf "java -jar jasmin.jar -d %s %s" test_dir j_file in
+      ignore (Sys.command cmd_jasmin);
+
+      let cmd_java = Printf.sprintf "java -cp %s %s/%s" test_dir class_name class_name in
+      ignore (Sys.command cmd_java);
+    end
+  ) files

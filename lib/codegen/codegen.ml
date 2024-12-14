@@ -17,6 +17,14 @@ let fmt (operator) (operand) =
 let map_size map =
   Env.fold (fun _ _ acc -> acc + 1) map 0
 
+let new_var id env = 
+  if Env.mem id env 
+    then (Env.find id env, env) 
+  else 
+    let new_variable = string_of_int (map_size env) in 
+    let env1 = Env.add id new_variable env in
+    (new_variable, env1)
+
 let c_bop (op: bcomp): string = 
   let op_str = match op with
   | EQ -> "ne "
@@ -36,7 +44,7 @@ let c_aop (a: aop) =
   | MOD -> "\tirem\n"
 
 
-let rec c_stmt (st: stmt) (env: int Env.t): string * int Env.t = 
+let rec c_stmt (st: stmt) (env: string Env.t): string * string Env.t = 
   match st with 
   | SKIP -> "", env
   | SEQ_STMT(st1, st2) -> 
@@ -65,19 +73,33 @@ let rec c_stmt (st: stmt) (env: int Env.t): string * int Env.t =
       (cs1) ^
       (fmt "goto" l_whl) ^
       (fmtl l_brk), env1
+  | FOR (i, lb, ub, bl) ->
+    let l_start = new_label "Startfor" in 
+    let l_end = new_label "Endfor" in
+    let (idx, env') = new_var i env in 
+    let c_lb = c_aexp lb env' in
+    let c_ub = c_aexp ub env' in 
+    let (c_bl, env'') = c_stmt bl env' in
+    (c_lb) ^
+    (fmt "istore" idx) ^
+    (fmtl l_start) ^
+    (fmt "iload" idx) ^
+    (c_ub) ^
+    (fmt "if_icmpgt" l_end) ^
+    (c_bl) ^
+    (fmt "iload" idx) ^
+    (fmt "ldc" "1") ^
+    "\tiadd\n" ^
+    (fmt "istore" idx) ^
+    (fmt "goto" l_start) ^
+    (fmtl l_end), env''
   | ASSIGN(id, e1) ->
     let ce1 = c_aexp e1 env in
-    let (idx, env1) = if Env.mem id env 
-      then (Env.find id env, env) 
-      else 
-        let new_variable = map_size env in 
-        let env1 = Env.add id new_variable env in
-        (new_variable, env1)
-      in
-    (ce1) ^
-    (fmt "istore" (string_of_int idx)), env1
+    let (idx, env1) = new_var id env in
+    (ce1) ^ 
+    (fmt "istore" idx), env1
   | WRITE_VAR(id) -> 
-    let idx = Env.find id env |> string_of_int in
+    let idx = Env.find id env in
     (fmt "iload" idx) ^
     "\tinvokestatic XXX/XXX/write(I)V\n", env
   | WRITE_STR(str) -> 
@@ -86,7 +108,7 @@ let rec c_stmt (st: stmt) (env: int Env.t): string * int Env.t =
   | _ -> failwith "Not implemented"
 
 
-and c_bexp (bex: bexp) (env: int Env.t) : string = 
+and c_bexp (bex: bexp) (env: string Env.t) : string = 
     match bex with
     | TRUE -> "i_const0\n"
     | FALSE -> "i_const0\n"
@@ -138,12 +160,12 @@ and c_bexp (bex: bexp) (env: int Env.t) : string =
   
 
 
-and c_aexp (exp : aexp) (env: int Env.t) : string =
+and c_aexp (exp : aexp) (env: string Env.t) : string =
   match exp with
   | VAL(n) -> (fmt "ldc" (string_of_int n))
   | VAR(id) -> 
     let loc = Env.find id env in
-    (fmt "iload" (string_of_int loc))
+    (fmt "iload" loc)
   | EXPR(aop, e1, e2) ->
     let instr1 = c_aexp e1 env in
     let instr2 = c_aexp e2 env in

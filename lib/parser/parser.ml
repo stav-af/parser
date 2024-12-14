@@ -88,6 +88,9 @@ let _lb      = !! "{" NONE
 let _rb      = !! "}" NONE
 let _comma   = !! "," NONE
 let _define  = !! "def" NONE
+let _for     = !! "for" NONE
+let _upto    = !! "upto" NONE
+let _do      = !! "do" NONE
 
 let _bool = (!! "true" TRUE) |~| (!! "false" FALSE)
 
@@ -146,7 +149,10 @@ and _stmt: stmt parser = fun inp ->
   ((_id ++ _assign ++_aexp) >>= fun ((a,_),c) -> ASSIGN(a, c)) |~|
   ((_if ++_bexp ++ _then ++ _block ++ _else ++ _block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
   ((_while ++_bexp ++ _do ++ _block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
-  ((_read ++ _id) >>= fun (_,b) -> READ(b))
+  ((_read ++ _id) >>= fun (_,b) -> READ(b)) |~|
+  ((_for ++ _id ++ _assign ++ _aexp ++ _upto ++ _aexp ++ _do ++ _block)  
+    >>= fun(((((((_, i), _), lo), _), hi), _), st) 
+      ->  FOR(i, lo, hi, st))
   ) inp
 and _write_stmt: stmt parser = fun inp -> (
     ((_write ++ _id) >>= fun (_, s) -> WRITE_VAR(s)) |~|

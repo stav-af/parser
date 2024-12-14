@@ -15,7 +15,7 @@ let f_paren = fun c -> String.contains "({})" c
 let f_whitespace = fun c -> String.contains " \t\n\r" c
 
 let r_keyword = ~-"while" ||| ~-"if" ||| ~-"then" ||| ~-"else" ||| ~-"do" ||| ~-"for" 
-  ||| ~-"to" ||| ~-"true" ||| ~-"false" ||| ~-"read" ||| ~-"write" ||| ~-"skip"
+  ||| ~-"to" ||| ~-"true" ||| ~-"false" ||| ~-"read" ||| ~-"write" ||| ~-"skip" ||| ~-"upto"
 let r_op = ~-"+" ||| ~-"-" ||| ~-"*" ||| ~-"%" ||| ~-"/" ||| ~-"==" ||| ~-"!="
   ||| ~-"<" ||| ~-">" ||| ~-"<=" ||| ~-">=" ||| ~-":=" ||| ~-"&&" ||| ~-"||"
 

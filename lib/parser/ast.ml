@@ -32,6 +32,9 @@ type stmt =
  | ASSIGN of ident * aexp
  | IF of bexp * stmt * stmt
  | WHILE of bexp * stmt
+ | FOR of string * aexp * aexp * stmt
  | READ of ident
  | WRITE_STR of string
  | WRITE_VAR of string
+
+

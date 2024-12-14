@@ -50,6 +50,7 @@ and eval_stmt (mmap: int StringMap.t) (statement: stmt) =
  | READ(ident) -> let inp = read_line() in (eval_stmt mmap (ASSIGN(ident, VAL(int_of_string inp))))
  | WRITE_VAR(ident) -> (Printf.printf "%d\n" (StringMap.find ident mmap)); mmap
  | WRITE_STR(str) -> (Printf.printf "%s\n" str); mmap
+ | _ -> failwith "NOT_IMPLEMENTED: Unknown variant of stmt passed to eval"
 
 let eval(st: stmt) =
   let mmap = StringMap.empty in
