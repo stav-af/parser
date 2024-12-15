@@ -14,16 +14,8 @@ let fmtl l =
 let fmt (operator) (operand) =
   Printf.sprintf "\t%s %s\n" operator operand
 
-let map_size map =
-  Env.fold (fun _ _ acc -> acc + 1) map 0
-
-let new_var id env = 
-  if Env.mem id env 
-    then (Env.find id env, env) 
-  else 
-    let new_variable = string_of_int (map_size env) in 
-    let env1 = Env.add id new_variable env in
-    (new_variable, env1)
+let map_size map_list =
+  List.fold_left (fun acc map -> acc + Env.cardinal map) 0 map_list
 
 let c_bop (op: bcomp): string = 
   let op_str = match op with
@@ -44,7 +36,46 @@ let c_aop (a: aop) =
   | MOD -> "\tirem\n"
 
 
-let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string Env.t = 
+let rec find_var id envl =
+  match envl with 
+  | [] -> failwith (Printf.sprintf "Tried to find %s but env was empty" id)
+  | x::xs -> if Env.mem id x then Env.find id x else find_var id xs
+
+
+(* Assign and decl are slightly different; 
+
+Decl is for initializing a new variable, or overwrite if in same scope
+Assign will reassign a variable instead of overwriting
+
+Decl is can be used to reuse iterator variable in for-loops
+Assign is more appropriate for the body of loops
+  *)
+
+
+let assign_var id envl =
+  if List.exists (fun e -> Env.mem id e) envl then
+    let env = List.find (fun e -> Env.mem id e) envl in
+    (Env.find id env, envl)
+  else
+    let head = List.hd envl in
+    let new_var = string_of_int (map_size envl) in
+    let env' = Env.add id new_var head in
+    (new_var, (env'::List.tl envl))
+
+let decl_var id envl =
+  let head = List.hd envl in 
+  if Env.mem id head then
+    (Env.find id head, envl)
+  else 
+    let new_var = string_of_int (map_size envl) in
+    let env' = Env.add id new_var head in
+    (new_var, (env'::(List.tl envl)))
+
+let new_scope envl = 
+  let env = Env.empty in 
+  (env::envl)
+
+let rec c_stmt (st: stmt) (env: string Env.t list) (l_brk: string): string * string Env.t list = 
   match st with 
   | SKIP -> "", env
   | BREAK -> fmt "goto" l_brk, env
@@ -67,20 +98,22 @@ let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string E
   | WHILE(b, s1) ->
     let l_whl = new_label "Startwhile" in
     let l_end = new_label "Endwhile" in
-    let (cs1, env1) = c_stmt s1 env l_end in
+    let env' = new_scope env in
+    let (cs1, env'') = c_stmt s1 env' l_end in
       (fmtl l_whl) ^
       (c_bexp b env) ^
       (fmt "ifeq" l_end) ^ (* if our bexp resolved to 0, break *)
       (cs1) ^
       (fmt "goto" l_whl) ^
-      (fmtl l_end), env1
+      (fmtl l_end), (List.tl env'')
   | FOR (i, lb, ub, bl) ->
     let l_for = new_label "Startfor" in 
     let l_end = new_label "Endfor" in
-    let (idx, env') = new_var i env in 
-    let c_lb = c_aexp lb env' in
-    let c_ub = c_aexp ub env' in 
-    let (c_bl, env'') = c_stmt bl env' l_end in
+    let env' = new_scope env in
+    let (idx, env'') = decl_var i env' in 
+    let c_lb = c_aexp lb env'' in
+    let c_ub = c_aexp ub env'' in 
+    let (c_bl, env''') = c_stmt bl env'' l_end in
       (c_lb) ^
       (fmt "istore" idx) ^
       (fmtl l_for) ^
@@ -93,18 +126,18 @@ let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string E
       "\tiadd\n" ^
       (fmt "istore" idx) ^
       (fmt "goto" l_for) ^
-      (fmtl l_end), env''
+      (fmtl l_end), (List.tl env''')
   | ASSIGN(id, e1) ->
     let ce1 = c_aexp e1 env in
-    let (idx, env1) = new_var id env in
+    let (idx, env1) = assign_var id env in
       (ce1) ^ 
       (fmt "istore" idx), env1
   | READ(id) ->
-    let (idx, env') = new_var id env in
+    let (idx, env') = assign_var id env in
       "\tinvokestatic XXX/XXX/read()I\n" ^
       (fmt "istore" idx), env'
   | WRITE_VAR(id) -> 
-    let idx = Env.find id env in
+    let idx = find_var id env in
       (fmt "iload" idx) ^
       "\tinvokestatic XXX/XXX/write(I)V\n", env
   | WRITE_STR(str) -> 
@@ -113,7 +146,7 @@ let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string E
   (* | _ -> failwith "Not implemented" *)
 
 
-and c_bexp (bex: bexp) (env: string Env.t) : string = 
+and c_bexp (bex: bexp) (env: string Env.t list) : string = 
     match bex with
     | TRUE -> "\ticonst_1\n"
     | FALSE -> "\ticonst_0\n"
@@ -165,11 +198,11 @@ and c_bexp (bex: bexp) (env: string Env.t) : string =
   
 
 
-and c_aexp (exp : aexp) (env: string Env.t) : string =
+and c_aexp (exp : aexp) (env: string Env.t list) : string =
   match exp with
   | VAL(n) -> (fmt "ldc" (string_of_int n))
   | VAR(id) -> 
-    let loc = Env.find id env in
+    let loc = find_var id env in
     (fmt "iload" loc)
   | EXPR(aop, e1, e2) ->
     let instr1 = c_aexp e1 env in
@@ -184,7 +217,7 @@ let f_write str f_name =
 
 
 let compile sstmt class_name = 
-  let env = Env.empty in
+  let env = [Env.empty] in
   let l_brk = "End_program" in
   let (instr, _) = (c_stmt sstmt env l_brk) in
   let prog =
