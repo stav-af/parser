@@ -99,6 +99,10 @@ let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string E
     let (idx, env1) = new_var id env in
       (ce1) ^ 
       (fmt "istore" idx), env1
+  | READ(id) ->
+    let (idx, env') = new_var id env in
+      "\tinvokestatic XXX/XXX/read()I\n" ^
+      (fmt "istore" idx), env'
   | WRITE_VAR(id) -> 
     let idx = Env.find id env in
       (fmt "iload" idx) ^
@@ -106,7 +110,7 @@ let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string E
   | WRITE_STR(str) -> 
       (fmt "ldc" str) ^
       "\tinvokestatic XXX/XXX/writes(Ljava/lang/String;)V\n", env
-  | _ -> failwith "Not implemented"
+  (* | _ -> failwith "Not implemented" *)
 
 
 and c_bexp (bex: bexp) (env: string Env.t) : string = 
@@ -118,14 +122,14 @@ and c_bexp (bex: bexp) (env: string Env.t) : string =
       let instr2 = c_aexp e2 env in
       let comp_f = new_label "Comp_f" in
       let comp_end = new_label "Comp_end" in
-      instr1 ^ 
-      instr2 ^ 
-      ((c_bop op) ^ comp_f) ^
-      "\n\tldc 1\n" ^
-      (fmt "goto" comp_end) ^
-      (fmtl comp_f) ^
-      ("\tldc 0\n") ^  
-      (fmtl comp_end)
+        instr1 ^ 
+        instr2 ^ 
+        ((c_bop op) ^ comp_f) ^
+        "\n\tldc 1\n" ^
+        (fmt "goto" comp_end) ^
+        (fmtl comp_f) ^
+        ("\tldc 0\n") ^  
+        (fmtl comp_end)
     | BEXP(bop, bexp1, bexp2) -> 
       begin
         match bop with

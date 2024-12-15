@@ -92,6 +92,7 @@ let _for     = !! "for" NONE
 let _upto    = !! "upto" NONE
 let _do      = !! "do" NONE
 let _break   = !! "break" BREAK
+let _read    = !! "read" NONE
 
 let _bool = (!! "true" TRUE) |~| (!! "false" FALSE)
 
@@ -147,6 +148,7 @@ and _comp_stmt: stmt parser = fun inp ->
    (_stmt)) inp
 and _stmt: stmt parser = fun inp ->
   (_skip |~| _write_stmt |~| _break |~|
+  ((_read ++ _id) >>= fun (_, s) -> READ(s)) |~|
   ((_id ++ _assign ++_aexp) >>= fun ((a,_),c) -> ASSIGN(a, c)) |~|
   ((_if ++_bexp ++ _then ++ _block ++ _else ++ _block) >>= fun (((((_, b), _), t), _), e) -> IF(b, t, e)) |~|
   ((_while ++_bexp ++ _do ++ _block) >>= fun (((_, b),_), bl) -> WHILE(b, bl)) |~|
