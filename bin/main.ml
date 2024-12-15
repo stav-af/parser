@@ -54,6 +54,7 @@ and display_stmt = function
   | WRITE_VAR e1 -> Printf.sprintf "write(%s)" e1
   | WRITE_STR e1 -> Printf.sprintf "write(%s)" e1
   | FOR (i, lb, ub, stmt) -> Printf.sprintf "for %s = %s upto %s do {%s}" i (display_exp lb) (display_exp ub) (display_stmt stmt)
+  | BREAK -> "break"
 
 let print_string_map (map: int StringMap.t) =
   StringMap.iter (fun key value ->

@@ -44,18 +44,19 @@ let c_aop (a: aop) =
   | MOD -> "\tirem\n"
 
 
-let rec c_stmt (st: stmt) (env: string Env.t): string * string Env.t = 
+let rec c_stmt (st: stmt) (env: string Env.t) (l_brk: string): string * string Env.t = 
   match st with 
   | SKIP -> "", env
+  | BREAK -> fmt "goto" l_brk, env
   | SEQ_STMT(st1, st2) -> 
-    let (instr1, env1) = c_stmt st1 env in
-    let (instr2, env2) = c_stmt st2 env1 in
-    (instr1 ^ instr2, env2)
+    let (instr1, env1) = c_stmt st1 env l_brk in
+    let (instr2, env2) = c_stmt st2 env1 l_brk in
+      (instr1 ^ instr2, env2)
   | IF(b, s1, s2) -> 
     let ifelse = new_label "Ifelse" in
     let endif = new_label "Endif" in 
-    let (cs1, env1) = c_stmt s1 env in
-    let (cs2, env2) = c_stmt s2 env1 in
+    let (cs1, env1) = c_stmt s1 env l_brk in
+    let (cs2, env2) = c_stmt s2 env1 l_brk in
       (c_bexp b env) ^
       (fmt "ifeq" ifelse) ^(* if our bexp evaluated to false, jump to else *)
       (cs1) ^
@@ -64,54 +65,54 @@ let rec c_stmt (st: stmt) (env: string Env.t): string * string Env.t =
       (cs2) ^
       (fmtl endif), env2
   | WHILE(b, s1) ->
-    let (cs1, env1) = c_stmt s1 env in
     let l_whl = new_label "Startwhile" in
-    let l_brk = new_label "Endwhile" in
+    let l_end = new_label "Endwhile" in
+    let (cs1, env1) = c_stmt s1 env l_end in
       (fmtl l_whl) ^
       (c_bexp b env) ^
-      (fmt "ifeq" l_brk) ^ (* if our bexp resolved to 0, break *)
+      (fmt "ifeq" l_end) ^ (* if our bexp resolved to 0, break *)
       (cs1) ^
       (fmt "goto" l_whl) ^
-      (fmtl l_brk), env1
+      (fmtl l_end), env1
   | FOR (i, lb, ub, bl) ->
-    let l_start = new_label "Startfor" in 
+    let l_for = new_label "Startfor" in 
     let l_end = new_label "Endfor" in
     let (idx, env') = new_var i env in 
     let c_lb = c_aexp lb env' in
     let c_ub = c_aexp ub env' in 
-    let (c_bl, env'') = c_stmt bl env' in
-    (c_lb) ^
-    (fmt "istore" idx) ^
-    (fmtl l_start) ^
-    (fmt "iload" idx) ^
-    (c_ub) ^
-    (fmt "if_icmpgt" l_end) ^
-    (c_bl) ^
-    (fmt "iload" idx) ^
-    (fmt "ldc" "1") ^
-    "\tiadd\n" ^
-    (fmt "istore" idx) ^
-    (fmt "goto" l_start) ^
-    (fmtl l_end), env''
+    let (c_bl, env'') = c_stmt bl env' l_end in
+      (c_lb) ^
+      (fmt "istore" idx) ^
+      (fmtl l_for) ^
+      (fmt "iload" idx) ^
+      (c_ub) ^
+      (fmt "if_icmpgt" l_end) ^
+      (c_bl) ^
+      (fmt "iload" idx) ^
+      (fmt "ldc" "1") ^
+      "\tiadd\n" ^
+      (fmt "istore" idx) ^
+      (fmt "goto" l_for) ^
+      (fmtl l_end), env''
   | ASSIGN(id, e1) ->
     let ce1 = c_aexp e1 env in
     let (idx, env1) = new_var id env in
-    (ce1) ^ 
-    (fmt "istore" idx), env1
+      (ce1) ^ 
+      (fmt "istore" idx), env1
   | WRITE_VAR(id) -> 
     let idx = Env.find id env in
-    (fmt "iload" idx) ^
-    "\tinvokestatic XXX/XXX/write(I)V\n", env
+      (fmt "iload" idx) ^
+      "\tinvokestatic XXX/XXX/write(I)V\n", env
   | WRITE_STR(str) -> 
-    (fmt "ldc" str) ^
-    "\tinvokestatic XXX/XXX/writes(Ljava/lang/String;)V\n", env
+      (fmt "ldc" str) ^
+      "\tinvokestatic XXX/XXX/writes(Ljava/lang/String;)V\n", env
   | _ -> failwith "Not implemented"
 
 
 and c_bexp (bex: bexp) (env: string Env.t) : string = 
     match bex with
-    | TRUE -> "i_const0\n"
-    | FALSE -> "i_const0\n"
+    | TRUE -> "\ticonst_1\n"
+    | FALSE -> "\ticonst_0\n"
     | COMP(op, e1, e2) ->
       let instr1 = c_aexp e1 env in
       let instr2 = c_aexp e2 env in
@@ -180,11 +181,13 @@ let f_write str f_name =
 
 let compile sstmt class_name = 
   let env = Env.empty in
-  let (instr, _) = (c_stmt sstmt env) in
+  let l_brk = "End_program" in
+  let (instr, _) = (c_stmt sstmt env l_brk) in
   let prog =
-    Printf.sprintf "%s\n%s\n\treturn\n.end method" 
+    Printf.sprintf "%s\n%s\n%s:\n\treturn\n.end method" 
       prelude
-      instr in
+      instr
+      l_brk in
   
   let pattern = Re.Perl.compile_pat "XXX" in
   Re.replace_string ~all:true ~by:class_name pattern prog

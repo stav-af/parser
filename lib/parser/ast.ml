@@ -28,6 +28,7 @@ type bexp =
 
 type stmt = 
  | SKIP
+ | BREAK
  | SEQ_STMT of stmt * stmt
  | ASSIGN of ident * aexp
  | IF of bexp * stmt * stmt
